@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AI Adoption & Upskilling – Prototype (Self-Contained)</title>
+<style>
+:root{--bg:#f6f7fb;--card:#ffffff;--stroke:rgba(15,23,42,.12);--text:#0f172a;--muted:#64748b;--accent:#2563eb;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--shadow:0 10px 24px rgba(15,23,42,.08);}
+*{box-sizing:border-box;font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;}
+body{margin:0;background:linear-gradient(180deg,#ffffff 0%, var(--bg) 55%, #ffffff 100%);color:var(--text);}
+.container{max-width:1280px;margin:0 auto;padding:18px 18px 28px;}
+.header{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.h1{font-size:20px;font-weight:900;letter-spacing:.2px}
+.sub{color:var(--muted);font-weight:400;font-size:12px;margin-top:4px}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+select{background:#ffffff;color:var(--text);border:1px solid var(--stroke);border-radius:10px;padding:8px 10px;font-weight:800}
+.note{width:100%;color:var(--muted);font-size:12px;font-weight:400;margin-top:-6px}
+
+.tabs{display:flex;gap:8px;margin:12px 0 12px;}
+.tab{border:1px solid var(--stroke);background:#ffffff;color:var(--text);padding:8px 12px;border-radius:999px;font-weight:900;cursor:pointer;font-size:12px}
+.tab.active{background:rgba(37,99,235,.10);border-color:rgba(37,99,235,.45)}
+
+.grid-kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px;}
+.card{background:var(--card);border:1px solid var(--stroke);border-radius:18px;padding:12px;box-shadow:var(--shadow);}
+.kpi-title{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.25px}
+.kpi-val{font-size:26px;font-weight:950;margin-top:6px}
+.kpi-sub{color:var(--muted);font-weight:400;font-size:11px;margin-top:2px}
+.spark{width:100%;height:28px;margin-top:6px;display:block}
+.kpi-delta{margin-top:4px;font-weight:950;font-size:12px;display:flex;gap:6px;align-items:center}
+.kpi-delta .arrow{font-size:12px}
+.kpi-delta.up{color:var(--ok)}
+.kpi-delta.down{color:var(--bad)}
+.kpi-delta.flat{color:var(--muted)}
+
+.badge{display:inline-flex;gap:6px;align-items:center;margin-top:8px;font-size:11px;font-weight:950;padding:4px 8px;border-radius:999px;border:1px solid var(--stroke);color:var(--muted)}
+.badge .dot{width:8px;height:8px;border-radius:999px;background:var(--muted)}
+.badge.ok .dot{background:var(--ok)} .badge.warn .dot{background:var(--warn)} .badge.bad .dot{background:var(--bad)}
+
+.panel{display:none}
+.panel.active{display:block}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.grid-2b{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.cardhdr{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:8px}
+.cardtitle{font-weight:950;font-size:13px}
+.cardhint{color:var(--muted);font-weight:400;font-size:11px}
+
+svg.chart{width:100%;display:block;}
+svg.chart *{vector-effect: non-scaling-stroke;}
+
+.smallnote{color:var(--muted);font-weight:400;font-size:11px;margin-top:6px}
+.ban{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.ban .tile{border:1px solid var(--stroke);border-radius:14px;padding:10px;background:#f8fafc}
+.ban .label{color:var(--muted);font-weight:400;font-size:11px}
+.ban .val{font-weight:950;font-size:20px;margin-top:4px}
+.footer{margin-top:14px;color:var(--muted);font-weight:400;font-size:11px}
+
+#tt{position:fixed;z-index:9999;pointer-events:none;max-width:260px;padding:8px 10px;border-radius:12px;border:1px solid var(--stroke);background:#ffffff;box-shadow:0 12px 28px rgba(15,23,42,.14);color:var(--text);font-weight:900;font-size:12px;line-height:1.25}
+#tt .muted{color:var(--muted);font-weight:800}
+
+
+/* --- Cross-tab vertical normalization (CSS-only; avoids breaking SVG JS) --- */
+/* Keep Overview as baseline; constrain other tabs to similar visual density */
+#panel-adoption svg.chart { height: 160px; }
+#panel-adoption #topGptsBig.chart { height: 220px; }
+#panel-adoption .ban .tile { padding: 8px; }
+#panel-adoption .ban .val { font-size: 18px; }
+
+#panel-skills #trainingBigBullet.chart { height: 170px; }
+#panel-skills #trainingBigTrend.chart { height: 220px; }
+
+/* Slightly tighten spacing inside non-overview tabs */
+#panel-adoption .grid-2b, #panel-skills .grid-2b { margin-bottom: 10px; }
+
+#err{display:none;margin:10px 0 0;padding:10px 12px;border-radius:14px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.10);color:#fecaca;font-weight:900;font-size:12px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <div class="h1">AI Adoption & Upskilling – Executive Prototype</div>
+      <div class="sub">Click tabs + filters to validate layout + interactions.</div>
+    </div>
+    <div class="controls">
+      <label class="sub">Division</label>
+      <select id="divisionSel"></select>
+      <label class="sub">Time</label>
+      <select id="periodSel"></select>
+    </div>
+    <div class="note" id="timeNote"></div>
+  </div>
+
+  <div id="err"></div>
+
+  <div id="tt" style="display:none;"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="adoption">Tool Adoption</button>
+    <button class="tab" data-tab="skills">Upskilling</button>
+  </div>
+
+  <div class="grid-kpi" id="kpiRow"></div>
+
+  <div class="panel active" id="panel-overview">
+    <div class="grid-2">
+      <div class="card">
+        <div class="cardhdr">
+          <div>
+            <div class="cardtitle">AI Tool Adoption</div>
+            <div class="cardhint">ChatGPT vs Copilot (Messages)</div>
+          </div>
+          <div class="cardhint" id="toolNote"></div>
+        </div>
+        <svg id="toolMessages" class="chart" viewBox="0 0 800 180" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="card">
+        <div class="cardhdr">
+          <div>
+            <div class="cardtitle">Training Completion Trend</div>
+            <div class="cardhint">Last 6 periods (W-5…W0 or M-5…M0)</div>
+          </div>
+        </div>
+        <svg id="trainingTopTrend" class="chart" viewBox="0 0 800 220" preserveAspectRatio="none"></svg>
+        <div class="smallnote" id="trainingTopNote"></div>
+      </div>
+    </div>
+
+    <div class="grid-2b">
+      <div class="card">
+        <div class="cardhdr">
+          <div>
+            <div class="cardtitle">Most Used GPTs (ChatGPT)</div>
+            <div class="cardhint">Top 5 by uses</div>
+          </div>
+        </div>
+        <svg id="topGpts" class="chart" viewBox="0 0 800 240" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="card">
+        <div class="cardhdr">
+          <div>
+            <div class="cardtitle">Training Completion</div>
+            <div class="cardhint">Layered bullet: completion vs target</div>
+          </div>
+        </div>
+        <svg id="trainingBullet" class="chart" viewBox="0 0 800 170" preserveAspectRatio="none"></svg>
+        <div class="smallnote" id="trainingBulletNote"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-adoption">
+    <div class="grid-2b">
+      <div class="card">
+        <div class="cardhdr"><div><div class="cardtitle">ChatGPT Adoption</div><div class="cardhint">Active users + messages</div></div></div>
+        <div class="ban">
+          <div class="tile"><div class="label">Active Users</div><div class="val" id="cActive">—</div></div>
+          <div class="tile"><div class="label">Messages</div><div class="val" id="cMsg">—</div></div>
+        </div>
+        <svg id="chatgptTrend" class="chart" viewBox="0 0 800 180" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+      <div class="card">
+        <div class="cardhdr"><div><div class="cardtitle">Copilot Adoption</div><div class="cardhint">Active users + messages</div></div></div>
+        <div class="ban">
+          <div class="tile"><div class="label">Active Users</div><div class="val" id="pActive">—</div></div>
+          <div class="tile"><div class="label">Messages</div><div class="val" id="pMsg">—</div></div>
+        </div>
+        <svg id="copilotTrend" class="chart" viewBox="0 0 800 180" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cardhdr"><div><div class="cardtitle">Most Used GPTs (ChatGPT)</div><div class="cardhint">Top 5 by uses</div></div></div>
+      <svg id="topGptsBig" class="chart" viewBox="0 0 800 280" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-skills">
+    <div class="grid-2b">
+      <div class="card">
+        <div class="cardhdr"><div><div class="cardtitle">Training Completion</div><div class="cardhint">Layered bullet</div></div></div>
+        <svg id="trainingBigBullet" class="chart" viewBox="0 0 800 190" preserveAspectRatio="none"></svg>
+        <div class="smallnote" id="champNote"></div>
+      </div>
+      <div class="card">
+        <div class="cardhdr"><div><div class="cardtitle">AI Champions</div><div class="cardhint">Volunteers</div></div></div>
+        <div class="kpi-val" id="champCount">—</div>
+        <div class="kpi-sub">People who volunteered to drive internal AI initiatives</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cardhdr"><div><div class="cardtitle">Training Completion Trend</div><div class="cardhint">Last 6 periods</div></div></div>
+      <svg id="trainingBigTrend" class="chart" viewBox="0 0 800 260" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </div>
+
+  <div class="footer">Mock data • Intended to map cleanly to Tableau (tabs≈navigation, filters≈parameters, charts≈worksheets).</div>
+</div>
+
+<script>
+const RAW = {"meta": {"divisions": ["All Divisions", "Division A", "Division B"], "periods": ["Weekly", "Monthly"]}, "All Divisions": {"Weekly": {"chatgpt": {"activeUsersPct": 22, "messages": 95000, "messagesTrend": [74, 76, 78, 80, 82, 83], "topGpts": [{"name": "Policy & Compliance", "uses": 21000}, {"name": "Writing Assistant", "uses": 18000}, {"name": "Data Analyst", "uses": 16000}, {"name": "Meeting Notes", "uses": 13000}, {"name": "Regulatory Helper", "uses": 11000}]}, "copilot": {"activeUsersPct": 29, "messages": 155000, "messagesTrend": [68, 69, 71, 73, 74, 76]}, "upskilling": {"trainingCompletionPct": 42, "completionTrend": [34, 36, 38, 39, 41, 42]}, "champions": {"count": 185}}, "Monthly": {"chatgpt": {"activeUsersPct": 26, "messages": 420000, "messagesTrend": [66, 70, 74, 78, 82, 86], "topGpts": [{"name": "Policy & Compliance", "uses": 98000}, {"name": "Writing Assistant", "uses": 84000}, {"name": "Data Analyst", "uses": 76000}, {"name": "Meeting Notes", "uses": 62000}, {"name": "Regulatory Helper", "uses": 52000}]}, "copilot": {"activeUsersPct": 34, "messages": 680000, "messagesTrend": [60, 64, 68, 72, 76, 80]}, "upskilling": {"trainingCompletionPct": 44, "completionTrend": [36, 38, 40, 41, 43, 44]}, "champions": {"count": 220}}}, "Division A": {"Weekly": {"chatgpt": {"activeUsersPct": 28, "messages": 42000, "messagesTrend": [80, 82, 84, 86, 88, 90], "topGpts": [{"name": "Commercial Messaging", "uses": 12000}, {"name": "Writing Assistant", "uses": 9000}, {"name": "Meeting Notes", "uses": 7000}, {"name": "Data Analyst", "uses": 6500}, {"name": "Policy & Compliance", "uses": 4500}]}, "copilot": {"activeUsersPct": 36, "messages": 61000, "messagesTrend": [72, 74, 76, 78, 80, 82]}, "upskilling": {"trainingCompletionPct": 48, "completionTrend": [40, 42, 44, 45, 47, 48]}, "champions": {"count": 72}}, "Monthly": {"chatgpt": {"activeUsersPct": 33, "messages": 150000, "messagesTrend": [72, 76, 80, 84, 88, 92], "topGpts": [{"name": "Commercial Messaging", "uses": 44000}, {"name": "Writing Assistant", "uses": 36000}, {"name": "Meeting Notes", "uses": 28000}, {"name": "Data Analyst", "uses": 24000}, {"name": "Policy & Compliance", "uses": 18000}]}, "copilot": {"activeUsersPct": 41, "messages": 240000, "messagesTrend": [66, 70, 74, 78, 82, 86]}, "upskilling": {"trainingCompletionPct": 50, "completionTrend": [42, 44, 46, 47, 49, 50]}, "champions": {"count": 90}}}, "Division B": {"Weekly": {"chatgpt": {"activeUsersPct": 16, "messages": 21000, "messagesTrend": [56, 57, 58, 59, 60, 61], "topGpts": [{"name": "Knowledge Search", "uses": 6000}, {"name": "Writing Assistant", "uses": 5200}, {"name": "Data Analyst", "uses": 4200}, {"name": "Meeting Notes", "uses": 3300}, {"name": "Policy & Compliance", "uses": 2200}]}, "copilot": {"activeUsersPct": 22, "messages": 31000, "messagesTrend": [58, 58, 59, 60, 61, 62]}, "upskilling": {"trainingCompletionPct": 36, "completionTrend": [30, 31, 32, 33, 35, 36]}, "champions": {"count": 38}}, "Monthly": {"chatgpt": {"activeUsersPct": 20, "messages": 82000, "messagesTrend": [54, 56, 58, 60, 62, 64], "topGpts": [{"name": "Knowledge Search", "uses": 22000}, {"name": "Writing Assistant", "uses": 19000}, {"name": "Data Analyst", "uses": 15000}, {"name": "Meeting Notes", "uses": 12000}, {"name": "Policy & Compliance", "uses": 9000}]}, "copilot": {"activeUsersPct": 26, "messages": 130000, "messagesTrend": [56, 58, 60, 62, 64, 66]}, "upskilling": {"trainingCompletionPct": 38, "completionTrend": [32, 33, 34, 35, 37, 38]}, "champions": {"count": 55}}}};
+const TRAINING_TARGET = 60;
+const state = { division: "All Divisions", period: "Weekly", tab: "overview" };
+
+const $ = (id)=>document.getElementById(id);
+function varMuted(){ return getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#64748b'; }
+function varAccent(){ return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2563eb'; }
+
+const fmt = {
+  pct:(v)=> `${Math.round(v)}%`,
+  num:(v)=> v.toLocaleString(),
+  short:(v)=> v>=1_000_000 ? (v/1_000_000).toFixed(1).replace(/\.0$/,"")+"M" : v>=1_000 ? Math.round(v/1_000)+"K" : String(v),
+};
+
+function periodSuffix(){ return state.period==="Weekly" ? " (last 7 days)" : " (last 30 days)"; }
+function periodNote(){ return state.period==="Weekly" ? "Weekly view: values reflect the last 7 days (rolling)" : "Monthly view: values reflect the last 30 days (rolling)"; }
+function trendLabels(){ const p = state.period==="Weekly" ? "W" : "M"; return ["-5","-4","-3","-2","-1","0"].map(s=>p+s);}
+
+
+function showTT(html, x, y){
+  const tt = $("tt");
+  if (!tt) return;
+  tt.innerHTML = html;
+  tt.style.display = "block";
+  const pad = 14;
+  const w = tt.getBoundingClientRect().width;
+  const h = tt.getBoundingClientRect().height;
+  let left = x + pad;
+  let top = y + pad;
+  if (left + w > window.innerWidth - 8) left = x - w - pad;
+  if (top + h > window.innerHeight - 8) top = y - h - pad;
+  tt.style.left = left + "px";
+  tt.style.top = top + "px";
+}
+function hideTT(){
+  const tt = $("tt");
+  if (tt) tt.style.display = "none";
+}
+
+function svgEl(tag, attrs={}){
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function svgClear(id){ const s=$(id); if(!s) return null; while(s.firstChild) s.removeChild(s.firstChild); return s; }
+
+function drawLine(id, series, yFmt){ 
+  const svg = svgClear(id); if(!svg) return;
+  const vb = svg.getAttribute("viewBox").split(" ").map(Number);
+  const W=vb[2], H=vb[3];
+  const padL=48,padR=16,padT=18,padB=30;
+  const w=W-padL-padR, h=H-padT-padB;
+  const mn=Math.min(...series), mx=Math.max(...series), rng=(mx-mn)||1;
+  const x=(i)=>padL + (i/(series.length-1))*w;
+  const y=(v)=>padT + (1-((v-mn)/rng))*h;
+
+  // grid (3)
+  for(let t=0;t<=2;t++){ 
+    const vv=mn + (rng*(t/2)); const yy=y(vv);
+    svg.appendChild(svgEl("line",{x1:padL,y1:yy,x2:W-padR,y2:yy,stroke:"rgba(148,163,184,.25)","stroke-width":"1"}));
+    const tx=svgEl("text",{x:padL-8,y:yy+4,"text-anchor":"end",fill:"#94a3b8","font-size":"12","font-weight":"400"});
+    tx.textContent = yFmt ? yFmt(vv) : vv.toFixed(0);
+    svg.appendChild(tx);
+  }
+  // x labels
+  const labs=trendLabels();
+  labs.forEach((lab,i)=>{ 
+    const tx=svgEl("text",{x:x(i),y:H-10,"text-anchor":"middle",fill:"#94a3b8","font-size":"12","font-weight":"400"});
+    tx.textContent=lab; svg.appendChild(tx);
+  });
+
+  const pts = series.map((v,i)=>`${x(i)},${y(v)}`).join(" ");
+  svg.appendChild(svgEl("polyline",{points:pts,fill:"none",stroke:"#3b82f6","stroke-width":"3"}));
+  series.forEach((v,i)=>svg.appendChild(svgEl("circle",{cx:x(i),cy:y(v),r:"4",fill:"#3b82f6"})));
+}
+
+function drawBars(id, labels, values, opts={}){ 
+  const svg = svgClear(id); if(!svg) return;
+  const vb = svg.getAttribute("viewBox").split(" ").map(Number);
+  const W=vb[2], H=vb[3];
+  const padL=48,padR=16,padT=18,padB=30;
+  const w=W-padL-padR, h=H-padT-padB;
+  const mx=Math.max(...values,1);
+  if (opts.axes){
+    svg.appendChild(svgEl('line',{x1:padL,y1:padT,x2:padL,y2:H-padB,stroke:'rgba(15,23,42,.18)','stroke-width':'1'}));
+    svg.appendChild(svgEl('line',{x1:padL,y1:H-padB,x2:W-padR,y2:H-padB,stroke:'rgba(15,23,42,.18)','stroke-width':'1'}));
+    const t0=svgEl('text',{x:padL-8,y:H-padB+4,'text-anchor':'end',fill:varMuted(),'font-size':'12','font-weight':'400'});
+    t0.textContent='0'; svg.appendChild(t0);
+    const tmax=svgEl('text',{x:padL-8,y:padT+4,'text-anchor':'end',fill:varMuted(),'font-size':'12','font-weight':'400'});
+    tmax.textContent = (opts.yFmt?opts.yFmt(mx):fmt.short(mx)); svg.appendChild(tmax);
+  }
+
+  const step=w/values.length, bw=step*0.65;
+  values.forEach((v,i)=>{ 
+    const bh=(v/mx)*h;
+    const x0=padL + i*step + (step-bw)/2;
+    const y0=padT + (h-bh);
+    svg.appendChild(svgEl("rect",{x:x0,y:y0,width:bw,height:bh,rx:"10",ry:"10",fill:"#3b82f6"}));
+    const tx=svgEl("text",{x:x0+bw/2,y:H-10,"text-anchor":"middle",fill:"#94a3b8","font-size":"12","font-weight":"400"});
+    tx.textContent=labels[i]; svg.appendChild(tx);
+  });
+}
+
+function drawBullet(id, valuePct, targetPct, opts={}){ 
+  const svg = svgClear(id); if(!svg) return;
+  const vb = svg.getAttribute("viewBox").split(" ").map(Number);
+  const W=vb[2], H=vb[3];
+  const padL=48,padR=16;
+  const barH=32;
+  const y=H/2 - 16;
+  const x0=padL, x1=W-padR;
+  const scale=(p)=> x0 + (p/100)*(x1-x0);
+
+  if (opts.axes){
+    svg.appendChild(svgEl('line',{x1:x0,y1:y+barH+10,x2:x1,y2:y+barH+10,stroke:'rgba(15,23,42,.18)','stroke-width':'1'}));
+    const l0=svgEl('text',{x:x0,y:y+barH+26,'text-anchor':'start',fill:varMuted(),'font-size':'12','font-weight':'400'});
+    l0.textContent='0%'; svg.appendChild(l0);
+    const l100=svgEl('text',{x:x1,y:y+barH+26,'text-anchor':'end',fill:varMuted(),'font-size':'12','font-weight':'400'});
+    l100.textContent='100%'; svg.appendChild(l100);
+  }
+
+  // grey 100%
+  svg.appendChild(svgEl("rect",{x:x0,y:y,width:(x1-x0),height:barH,rx:"10",ry:"10",fill:"#e5e7eb"}));
+  // blue completion
+  svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(2, scale(valuePct)-x0),height:barH,rx:"10",ry:"10",fill:"#3b82f6"}));
+  // target line
+  const xt=scale(targetPct);
+  svg.appendChild(svgEl("line",{x1:xt,y1:y-6,x2:xt,y2:y+barH+6,stroke:"rgba(15,23,42,.75)","stroke-width":"3"}));
+  // value label
+  const tx=svgEl("text",{x:scale(valuePct),y:y-6,"text-anchor":"end",fill:"#0f172a","font-size":"12","font-weight":"950"});
+  tx.textContent=`${Math.round(valuePct)}%`; svg.appendChild(tx);
+}
+
+function statusBadge(p){ if(p>=35) return "ok"; if(p>=20) return "warn"; return "bad"; }
+
+function getCur(){ return RAW[state.division][state.period]; }
+
+
+function drawSpark(id, series){
+  const svg = svgClear(id); if(!svg) return;
+  const W=120, H=28, pad=2;
+  const mn=Math.min(...series), mx=Math.max(...series), rng=(mx-mn)||1;
+  const x=(i)=> pad + (i/(series.length-1))*(W-2*pad);
+  const y=(v)=> pad + (1-((v-mn)/rng))*(H-2*pad);
+  const pts=series.map((v,i)=>`${x(i)},${y(v)}`).join(" ");
+  svg.appendChild(svgEl("polyline",{points:pts,fill:"none",stroke:varAccent(),"stroke-width":"2"}));
+}
+
+function renderKPIs(){
+  const cur=getCur();
+  const kpis=[
+    {t:"ChatGPT Active Users", v:fmt.pct(cur.chatgpt.activeUsersPct), s:"% of eligible", b:statusBadge(cur.chatgpt.activeUsersPct)},
+    {t:"ChatGPT Messages", v:fmt.short(cur.chatgpt.messages), s:"volume"+periodSuffix(), b:""},
+    {t:"Copilot Active Users", v:fmt.pct(cur.copilot.activeUsersPct), s:"% of eligible", b:statusBadge(cur.copilot.activeUsersPct)},
+    {t:"Copilot Messages", v:fmt.short(cur.copilot.messages), s:"volume"+periodSuffix(), b:""},
+    {t:"AI Champions", v:fmt.num(cur.champions.count), s:"volunteers", b:""},
+  ];
+  const row=$("kpiRow"); row.innerHTML="";
+  kpis.forEach((k,idx)=>{
+    const c=document.createElement("div"); c.className="card";
+    c.innerHTML=`<div class="kpi-title">${k.t}</div><div class="kpi-val">${k.v}</div><div class="kpi-delta" id="delta${idx}">—</div><svg id="spark${idx}" class="spark" viewBox="0 0 120 28" preserveAspectRatio="xMidYMid meet"></svg><div class="kpi-sub">${k.s}</div>
+      `;
+    row.appendChild(c);
+    // sparklines (6 periods)
+    const cur = getCur();
+    const s = idx===0 ? cur.chatgpt.messagesTrend :
+              idx===1 ? cur.chatgpt.messagesTrend :
+              idx===2 ? cur.copilot.messagesTrend :
+              idx===3 ? cur.copilot.messagesTrend :
+              idx===4 ? cur.upskilling.completionTrend : cur.chatgpt.messagesTrend;
+    // normalize to 0-100 for better spark scaling
+    const s2 = s.map(v=>Number(v));
+    drawSpark(`spark${idx}`, s2);
+    // delta vs prior period (most recent vs previous)
+    const last = s2[s2.length-1];
+    const prev = (s2.length>1) ? s2[s2.length-2] : last;
+    const dPct = prev===0 ? 0 : ((last-prev)/Math.abs(prev))*100;
+    const del = document.getElementById(`delta${idx}`);
+    if (del){
+      const cls = dPct>0.25 ? 'up' : dPct<-0.25 ? 'down' : 'flat';
+      const arrow = dPct>0.25 ? '▲' : dPct<-0.25 ? '▼' : '→';
+      const val = Math.abs(dPct)<0.05 ? '0.0' : Math.abs(dPct).toFixed(1);
+      del.className = `kpi-delta ${cls}`;
+      del.innerHTML = `<span class="arrow">${arrow}</span><span>${val}% vs prior</span>`;
+    }
+  });
+}
+
+function renderCharts(){
+  const cur=getCur();
+  $("timeNote").textContent = periodNote();
+
+  // overview
+  drawBars("toolMessages", ["ChatGPT","Copilot"], [cur.chatgpt.messages, cur.copilot.messages], {axes:true, yFmt: fmt.short});
+  $("toolNote").textContent = `Active users: ChatGPT ${fmt.pct(cur.chatgpt.activeUsersPct)} • Copilot ${fmt.pct(cur.copilot.activeUsersPct)} • ${periodSuffix().trim()}`;
+  drawLine("trainingTopTrend", cur.upskilling.completionTrend, (v)=>`${Math.round(v)}%`);
+  $("trainingTopNote").textContent = `Training completion is ${fmt.pct(cur.upskilling.trainingCompletionPct)}${periodSuffix()}`;
+  drawBars("topGpts", cur.chatgpt.topGpts.map(x=>x.name.split(" ")[0]), cur.chatgpt.topGpts.map(x=>x.uses), {axes:true, yFmt: fmt.short});
+  drawBullet("trainingBullet", cur.upskilling.trainingCompletionPct, TRAINING_TARGET, {axes:true});
+  $("trainingBulletNote").textContent = `Target: ${TRAINING_TARGET}% • Current: ${cur.upskilling.trainingCompletionPct}%${periodSuffix()}`;
+
+  // adoption tab
+  $("cActive").textContent = fmt.pct(cur.chatgpt.activeUsersPct);
+  $("cMsg").textContent = fmt.short(cur.chatgpt.messages);
+  drawLine("chatgptTrend", cur.chatgpt.messagesTrend, (v)=>v.toFixed(0));
+  $("pActive").textContent = fmt.pct(cur.copilot.activeUsersPct);
+  $("pMsg").textContent = fmt.short(cur.copilot.messages);
+  drawLine("copilotTrend", cur.copilot.messagesTrend, (v)=>v.toFixed(0));
+  drawBars("topGptsBig", cur.chatgpt.topGpts.map(x=>x.name.split(" ")[0]), cur.chatgpt.topGpts.map(x=>x.uses), {axes:true, yFmt: fmt.short});
+
+  // skills tab
+  drawBullet("trainingBigBullet", cur.upskilling.trainingCompletionPct, TRAINING_TARGET, {axes:true});
+  $("champCount").textContent = fmt.num(cur.champions.count);
+  $("champNote").textContent = `Current completion: ${cur.upskilling.trainingCompletionPct}%${periodSuffix()} • Target: ${TRAINING_TARGET}%`;
+  drawLine("trainingBigTrend", cur.upskilling.completionTrend, (v)=>`${Math.round(v)}%`);
+}
+
+function setTab(tab){
+  state.tab=tab;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active", b.dataset.tab===tab));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active", p.id===`panel-${tab}`));
+}
+
+function wire(){
+  // selects
+  const d=$("divisionSel"); d.innerHTML="";
+  RAW.meta.divisions.forEach(x=>{ const o=document.createElement("option"); o.value=x; o.textContent=x; d.appendChild(o); });
+  d.value=state.division;
+  d.addEventListener("change", ()=>{ state.division=d.value; safeRender(); });
+
+  const p=$("periodSel"); p.innerHTML="";
+  RAW.meta.periods.forEach(x=>{ const o=document.createElement("option"); o.value=x; o.textContent=x; p.appendChild(o); });
+  p.value=state.period;
+  p.addEventListener("change", ()=>{ state.period=p.value; safeRender(); });
+
+  // tabs
+  document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click", ()=>{ setTab(b.dataset.tab); }));
+}
+
+function safeRender(){
+  const err=$("err"); err.style.display="none"; err.textContent="";
+  try{
+    renderKPIs();
+    renderCharts();
+  }catch(e){
+    err.style.display="block";
+    err.textContent = "Render error:\n" + (e && e.stack ? e.stack : e);
+    console.error(e);
+  }
+}
+
+wire();
+window.addEventListener('scroll', hideTT, {passive:true});
+window.addEventListener('click', hideTT);
+safeRender();
+</script>
+</body>
+</html>
