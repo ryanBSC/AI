@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>AI Adoption & Upskilling – Prototype (Self-Contained)</title>
 <style>
-:root{--bg:#f6f7fb;--card:#ffffff;--stroke:rgba(15,23,42,.12);--text:#0f172a;--muted:#64748b;--accent:#2563eb;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--shadow:0 10px 24px rgba(15,23,42,.08);}
+:root{--bg:#f6f7fb;--card:#ffffff;--stroke:rgba(15,23,42,.12);--text:#0f172a;--muted:#64748b;--accent:#003C71;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--shadow:0 10px 24px rgba(15,23,42,.08);}
 *{box-sizing:border-box;font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;}
 body{margin:0;background:linear-gradient(180deg,#ffffff 0%, var(--bg) 55%, #ffffff 100%);color:var(--text);}
 .container{max-width:1280px;margin:0 auto;padding:18px 18px 28px;}
@@ -239,7 +239,7 @@ const state = { division: "All Divisions", period: "Weekly", tab: "overview" };
 
 const $ = (id)=>document.getElementById(id);
 function varMuted(){ return getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#64748b'; }
-function varAccent(){ return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2563eb'; }
+function varAccent(){ return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#003C71'; }
 
 const fmt = {
   pct:(v)=> `${Math.round(v)}%`,
@@ -343,7 +343,7 @@ function drawBars(id, labels, values, opts={}){
     const bh=(v/mx)*h;
     const x0=padL + i*step + (step-bw)/2;
     const y0=padT + (h-bh);
-    const rect = svgEl("rect",{x:x0,y:y0,width:bw,height:bh,rx:"0",ry:"0",fill:varAccent()});
+    const rect = svgEl("rect",{x:x0,y:y0,width:bw,height:bh,rx:"10",ry:"10",fill:varAccent()});
     rect.addEventListener("mousemove",(e)=>{
       const val = opts.yFmt ? opts.yFmt(v) : fmt.num(v);
       showTT(`<div>${labels[i]}: <b>${val}</b></div><div class="muted">${periodSuffix().trim()}</div>`, e.clientX, e.clientY);
@@ -375,9 +375,9 @@ function drawBullet(id, valuePct, targetPct, opts={}){
   }
 
   // grey 100%
-  svg.appendChild(svgEl("rect",{x:x0,y:y,width:(x1-x0),height:barH,rx:"0",ry:"0",fill:"#e5e7eb"}));
+  svg.appendChild(svgEl("rect",{x:x0,y:y,width:(x1-x0),height:barH,rx:"10",ry:"10",fill:"#e5e7eb"}));
   // blue completion
-  svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(2, scale(valuePct)-x0),height:barH,rx:"0",ry:"0",fill:"#3b82f6"}));
+  svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(2, scale(valuePct)-x0),height:barH,rx:"10",ry:"10",fill:"#003C71"}));
   // target line
   const xt=scale(targetPct);
   const tl = svgEl("line",{x1:xt,y1:y-6,x2:xt,y2:y+barH+6,stroke:"rgba(15,23,42,.75)","stroke-width":"3"});
