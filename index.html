@@ -438,11 +438,17 @@ function renderKPIs(){
     row.appendChild(c);
     // sparklines (6 periods)
     const cur = getCur();
-    const s = idx===0 ? cur.chatgpt.messagesTrend :
+    const s = idx===0 ? cur.chatgpt.activeUsersTrend :
               idx===1 ? cur.chatgpt.messagesTrend :
-              idx===2 ? cur.copilot.messagesTrend :
+              idx===2 ? cur.copilot.activeUsersTrend :
               idx===3 ? cur.copilot.messagesTrend :
-              idx===4 ? cur.upskilling.completionTrend : cur.chatgpt.messagesTrend;
+              idx===4 ? null : cur.chatgpt.messagesTrend;
+    // No sparkline series for AI Champions (tile #5)
+    if (!s){
+      const del = document.getElementById(`delta${idx}`);
+      if (del) { del.className = 'kpi-delta flat'; del.innerHTML = `<span class="arrow">→</span><span>—</span>`; }
+      return; // continue to next KPI
+    }
     // normalize to 0-100 for better spark scaling
     const s2 = s.map(v=>Number(v));
     if (idx===0) s2[s2.length-1] = cur.chatgpt.activeUsersPct;
@@ -455,7 +461,7 @@ function renderKPIs(){
       if (idx===1 || idx===3) return fmt.short(Math.round(v));
       return '';
     };
-    if (s) { drawSpark(`spark${idx}`, s2, { labels: trendLabels(), format: sparkFmt, title: sparkTitle }); }
+    if (s) { if (s) drawSpark(`spark${idx}`, s2, { labels: trendLabels(), format: sparkFmt, title: sparkTitle }); }
     else { /* no sparkline for champions */ }
     // delta vs prior period (most recent vs previous)
     const last = s2[s2.length-1];
