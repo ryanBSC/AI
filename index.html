@@ -343,7 +343,7 @@ function drawBars(id, labels, values, opts={}){
     const bh=(v/mx)*h;
     const x0=padL + i*step + (step-bw)/2;
     const y0=padT + (h-bh);
-    const rect = svgEl("rect",{x:x0,y:y0,width:bw,height:bh,rx:"10",ry:"10",fill:varAccent()});
+    const rect = svgEl("rect",{x:x0,y:y0,width:bw,height:bh,rx:"0",ry:"0",fill:varAccent()});
     rect.addEventListener("mousemove",(e)=>{
       const val = opts.yFmt ? opts.yFmt(v) : fmt.num(v);
       showTT(`<div>${labels[i]}: <b>${val}</b></div><div class="muted">${periodSuffix().trim()}</div>`, e.clientX, e.clientY);
@@ -375,9 +375,9 @@ function drawBullet(id, valuePct, targetPct, opts={}){
   }
 
   // grey 100%
-  svg.appendChild(svgEl("rect",{x:x0,y:y,width:(x1-x0),height:barH,rx:"10",ry:"10",fill:"#e5e7eb"}));
+  svg.appendChild(svgEl("rect",{x:x0,y:y,width:(x1-x0),height:barH,rx:"0",ry:"0",fill:"#e5e7eb"}));
   // blue completion
-  svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(2, scale(valuePct)-x0),height:barH,rx:"10",ry:"10",fill:"#3b82f6"}));
+  svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(2, scale(valuePct)-x0),height:barH,rx:"0",ry:"0",fill:"#3b82f6"}));
   // target line
   const xt=scale(targetPct);
   const tl = svgEl("line",{x1:xt,y1:y-6,x2:xt,y2:y+barH+6,stroke:"rgba(15,23,42,.75)","stroke-width":"3"});
