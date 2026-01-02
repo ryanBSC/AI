@@ -11,6 +11,7 @@ body{margin:0;background:linear-gradient(180deg,#ffffff 0%, var(--bg) 55%, #ffff
 .container{max-width:1280px;margin:0 auto;padding:18px 18px 28px;}
 .header{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
 .h1{font-size:20px;font-weight:900;letter-spacing:.2px}
+@media (max-width:640px){.h1{font-size:18px}}
 .sub{color:var(--muted);font-weight:400;font-size:12px;margin-top:4px}
 .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 select{background:#ffffff;color:var(--text);border:1px solid var(--stroke);border-radius:10px;padding:8px 10px;font-weight:800}
@@ -72,6 +73,40 @@ svg.chart *{vector-effect: non-scaling-stroke;}
 #panel-adoption .grid-2b, #panel-skills .grid-2b { margin-bottom: 10px; }
 
 #err{display:none;margin:10px 0 0;padding:10px 12px;border-radius:14px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.10);color:#fecaca;font-weight:900;font-size:12px;white-space:pre-wrap}
+
+/* --- Responsive layout (tablet + mobile) --- */
+@media (max-width: 980px){
+  .container{padding:14px 14px 22px;}
+  .grid-kpi{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:1fr;}
+  .grid-2b{grid-template-columns:1fr;}
+  .controls{width:100%;justify-content:flex-start}
+  .note{margin-top:0}
+}
+@media (max-width: 640px){
+  .header{align-items:flex-start}
+  .grid-kpi{grid-template-columns:repeat(2,1fr);}
+  .tabs{flex-wrap:wrap}
+  .tab{flex:1 1 auto;text-align:center}
+  select{width:100%}
+  .controls{gap:8px}
+  .ban{grid-template-columns:1fr 1fr}
+  /* Reduce chart heights on small screens */
+  #panel-adoption svg.chart, #panel-overview svg.chart, #panel-skills svg.chart{height:160px;}
+  #panel-overview #toolMessages.chart{height:170px;}
+  #panel-overview #trainingTopTrend.chart{height:170px;}
+  #panel-overview #topGpts.chart{height:190px;}
+  #panel-overview #trainingBullet.chart{height:150px;}
+  #panel-adoption #topGptsBig.chart{height:210px;}
+  #panel-skills #trainingBigTrend.chart{height:210px;}
+  #panel-skills #trainingBigBullet.chart{height:160px;}
+}
+@media (max-width: 420px){
+  .grid-kpi{grid-template-columns:1fr;}
+  .kpi-val{font-size:24px}
+  .ban{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
@@ -244,7 +279,7 @@ function svgEl(tag, attrs={}){
 }
 function svgClear(id){ const s=$(id); if(!s) return null; while(s.firstChild) s.removeChild(s.firstChild); return s; }
 
-function drawLine(id, series, yFmt){ 
+function drawLine(id, series, yFmt){
   const svg = svgClear(id); if(!svg) return;
   const vb = svg.getAttribute("viewBox").split(" ").map(Number);
   const W=vb[2], H=vb[3];
@@ -255,32 +290,45 @@ function drawLine(id, series, yFmt){
   const y=(v)=>padT + (1-((v-mn)/rng))*h;
 
   // grid (3)
-  for(let t=0;t<=2;t++){ 
+  for(let t=0;t<=2;t++){
     const vv=mn + (rng*(t/2)); const yy=y(vv);
     svg.appendChild(svgEl("line",{x1:padL,y1:yy,x2:W-padR,y2:yy,stroke:"rgba(148,163,184,.25)","stroke-width":"1"}));
-    const tx=svgEl("text",{x:padL-8,y:yy+4,"text-anchor":"end",fill:"#94a3b8","font-size":"12","font-weight":"400"});
+    const tx=svgEl("text",{x:padL-8,y:yy+4,"text-anchor":"end",fill:varMuted(),"font-size":"12","font-weight":"400"});
     tx.textContent = yFmt ? yFmt(vv) : vv.toFixed(0);
     svg.appendChild(tx);
   }
+
   // x labels
   const labs=trendLabels();
-  labs.forEach((lab,i)=>{ 
-    const tx=svgEl("text",{x:x(i),y:H-10,"text-anchor":"middle",fill:"#94a3b8","font-size":"12","font-weight":"400"});
+  labs.forEach((lab,i)=>{
+    const tx=svgEl("text",{x:x(i),y:H-10,"text-anchor":"middle",fill:varMuted(),"font-size":"12","font-weight":"400"});
     tx.textContent=lab; svg.appendChild(tx);
   });
 
   const pts = series.map((v,i)=>`${x(i)},${y(v)}`).join(" ");
-  svg.appendChild(svgEl("polyline",{points:pts,fill:"none",stroke:"#3b82f6","stroke-width":"3"}));
-  series.forEach((v,i)=>svg.appendChild(svgEl("circle",{cx:x(i),cy:y(v),r:"4",fill:"#3b82f6"})));
+  svg.appendChild(svgEl("polyline",{points:pts,fill:"none",stroke:varAccent(),"stroke-width":"3"}));
+
+  // points + tooltip hit targets
+  series.forEach((v,i)=>{
+    svg.appendChild(svgEl("circle",{cx:x(i),cy:y(v),r:"4",fill:varAccent()}));
+    const hit = svgEl("circle",{cx:x(i),cy:y(v),r:"12",fill:"transparent",cursor:"default"});
+    hit.addEventListener("mousemove",(e)=>{
+      const val = yFmt ? yFmt(v) : v.toFixed(0);
+      showTT(`<div>${labs[i]}: <b>${val}</b></div><div class="muted">${periodSuffix().trim()}</div>`, e.clientX, e.clientY);
+    });
+    hit.addEventListener("mouseleave", hideTT);
+    svg.appendChild(hit);
+  });
 }
 
-function drawBars(id, labels, values, opts={}){ 
+function drawBars(id, labels, values, opts={}){
   const svg = svgClear(id); if(!svg) return;
   const vb = svg.getAttribute("viewBox").split(" ").map(Number);
   const W=vb[2], H=vb[3];
   const padL=48,padR=16,padT=18,padB=30;
   const w=W-padL-padR, h=H-padT-padB;
   const mx=Math.max(...values,1);
+
   if (opts.axes){
     svg.appendChild(svgEl('line',{x1:padL,y1:padT,x2:padL,y2:H-padB,stroke:'rgba(15,23,42,.18)','stroke-width':'1'}));
     svg.appendChild(svgEl('line',{x1:padL,y1:H-padB,x2:W-padR,y2:H-padB,stroke:'rgba(15,23,42,.18)','stroke-width':'1'}));
@@ -291,12 +339,19 @@ function drawBars(id, labels, values, opts={}){
   }
 
   const step=w/values.length, bw=step*0.65;
-  values.forEach((v,i)=>{ 
+  values.forEach((v,i)=>{
     const bh=(v/mx)*h;
     const x0=padL + i*step + (step-bw)/2;
     const y0=padT + (h-bh);
-    svg.appendChild(svgEl("rect",{x:x0,y:y0,width:bw,height:bh,rx:"10",ry:"10",fill:"#3b82f6"}));
-    const tx=svgEl("text",{x:x0+bw/2,y:H-10,"text-anchor":"middle",fill:"#94a3b8","font-size":"12","font-weight":"400"});
+    const rect = svgEl("rect",{x:x0,y:y0,width:bw,height:bh,rx:"10",ry:"10",fill:varAccent()});
+    rect.addEventListener("mousemove",(e)=>{
+      const val = opts.yFmt ? opts.yFmt(v) : fmt.num(v);
+      showTT(`<div>${labels[i]}: <b>${val}</b></div><div class="muted">${periodSuffix().trim()}</div>`, e.clientX, e.clientY);
+    });
+    rect.addEventListener("mouseleave", hideTT);
+    svg.appendChild(rect);
+
+    const tx=svgEl("text",{x:x0+bw/2,y:H-10,"text-anchor":"middle",fill:varMuted(),"font-size":"12","font-weight":"400"});
     tx.textContent=labels[i]; svg.appendChild(tx);
   });
 }
@@ -325,7 +380,11 @@ function drawBullet(id, valuePct, targetPct, opts={}){
   svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(2, scale(valuePct)-x0),height:barH,rx:"10",ry:"10",fill:"#3b82f6"}));
   // target line
   const xt=scale(targetPct);
-  svg.appendChild(svgEl("line",{x1:xt,y1:y-6,x2:xt,y2:y+barH+6,stroke:"rgba(15,23,42,.75)","stroke-width":"3"}));
+  const tl = svgEl("line",{x1:xt,y1:y-6,x2:xt,y2:y+barH+6,stroke:"rgba(15,23,42,.75)","stroke-width":"3"});
+svg.appendChild(tl);
+tl.addEventListener("mousemove",(e)=>showTT(`<div>Target: <b>${targetPct}%</b></div>`, e.clientX, e.clientY));
+tl.addEventListener("mouseleave", hideTT);
+
   // value label
   const tx=svgEl("text",{x:scale(valuePct),y:y-6,"text-anchor":"end",fill:"#0f172a","font-size":"12","font-weight":"950"});
   tx.textContent=`${Math.round(valuePct)}%`; svg.appendChild(tx);
@@ -336,7 +395,7 @@ function statusBadge(p){ if(p>=35) return "ok"; if(p>=20) return "warn"; return 
 function getCur(){ return RAW[state.division][state.period]; }
 
 
-function drawSpark(id, series){
+function drawSpark(id, series, opts={}){
   const svg = svgClear(id); if(!svg) return;
   const W=120, H=28, pad=2;
   const mn=Math.min(...series), mx=Math.max(...series), rng=(mx-mn)||1;
@@ -344,6 +403,23 @@ function drawSpark(id, series){
   const y=(v)=> pad + (1-((v-mn)/rng))*(H-2*pad);
   const pts=series.map((v,i)=>`${x(i)},${y(v)}`).join(" ");
   svg.appendChild(svgEl("polyline",{points:pts,fill:"none",stroke:varAccent(),"stroke-width":"2"}));
+
+  const labels = opts.labels || Array.from({length: series.length}, (_,i)=>`P${i+1}`);
+  const format = opts.format || ((v)=> String(v));
+  const title = opts.title || "";
+
+  // points + tooltip hit targets
+  series.forEach((v,i)=>{
+    svg.appendChild(svgEl("circle",{cx:x(i),cy:y(v),r:"2.5",fill:varAccent()}));
+    const hit = svgEl("circle",{cx:x(i),cy:y(v),r:"8",fill:"transparent",cursor:"default"});
+    hit.addEventListener("mousemove",(e)=>{
+      const val = format(v);
+      const head = title ? `<div class="muted">${title}</div>` : "";
+      showTT(`${head}<div>${labels[i]}: <b>${val}</b></div>`, e.clientX, e.clientY);
+    });
+    hit.addEventListener("mouseleave", hideTT);
+    svg.appendChild(hit);
+  });
 }
 
 function renderKPIs(){
@@ -370,7 +446,14 @@ function renderKPIs(){
               idx===4 ? cur.upskilling.completionTrend : cur.chatgpt.messagesTrend;
     // normalize to 0-100 for better spark scaling
     const s2 = s.map(v=>Number(v));
-    drawSpark(`spark${idx}`, s2);
+    const sparkTitle = k.t;
+    const sparkFmt = (v)=> {
+      // keep formatting lightweight per KPI
+      if (idx===0 || idx===2) return fmt.pct(v); // active user % tiles
+      if (idx===4) return `${Math.round(v)}%`; // champions uses completion trend
+      return fmt.short(v);
+    };
+    drawSpark(`spark${idx}`, s2, { labels: trendLabels(), format: sparkFmt, title: sparkTitle });
     // delta vs prior period (most recent vs previous)
     const last = s2[s2.length-1];
     const prev = (s2.length>1) ? s2[s2.length-2] : last;
